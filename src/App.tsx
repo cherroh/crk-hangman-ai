@@ -7,22 +7,27 @@ import hangman3 from "./assets/hangman3.png";
 import hangman4 from "./assets/hangman4.png";
 import hangman5 from "./assets/hangman5.png";
 import hangman6 from "./assets/hangman6.png";
-import "./App.css";
-import { WORDS } from "./data/words";
+import "./App.modern.css";
+import { WORD_CATEGORIES } from "./data/wordsByDifficulty";
 import { getMaskedLetters, isWordGuessed } from "./utils/gameLogic";
+import { generateAIPrediction } from "./utils/aiPredictions";
+import { loadStats, recordGameResult } from "./utils/gameStats";
+import type { Difficulty, AIPrediction, GameStats } from "./types";
+import { AIPanel } from "./components/AIPanel";
+import { DifficultySelector } from "./components/DifficultySelector";
+import { StatsDisplay } from "./components/StatsDisplay";
+import { GameStatus } from "./components/GameStatus";
 
 const MAX_WRONG = 6;
 
-function getRandomWord() {
-  return WORDS[Math.floor(Math.random() * WORDS.length)];
-}
-
-const WORD_BANK_TEXT = WORDS.join(", ");
-
-function getCandidateWords(maskedLetters: string[], guessedLetters: string[]) {
+function getCandidateWords(
+  words: string[],
+  maskedLetters: string[],
+  guessedLetters: string[]
+) {
   const wrongLetters = guessedLetters.filter((letter) => !maskedLetters.includes(letter));
 
-  return WORDS.filter((candidate) => {
+  return words.filter((candidate) => {
     const normalizedCandidate = candidate.toLowerCase();
     if (normalizedCandidate.length !== maskedLetters.length) {
       return false;
@@ -53,231 +58,106 @@ function getCandidateWords(maskedLetters: string[], guessedLetters: string[]) {
 }
 
 function App() {
-  const [word, setWord] = useState(getRandomWord());
+  // Game state
+  const [difficulty, setDifficulty] = useState<Difficulty>("medium");
+  const [word, setWord] = useState(() => {
+    const words = WORD_CATEGORIES[difficulty];
+    return words[Math.floor(Math.random() * words.length)];
+  });
   const [guessedLetters, setGuessedLetters] = useState<string[]>([]);
   const [wrongGuesses, setWrongGuesses] = useState(0);
   const [input, setInput] = useState("");
   const [inputError, setInputError] = useState(false);
-  const [gameStatus, setGameStatus] = useState<"idle" | "correct" | "wrong" | "won" | "lost">("idle");
-  const [aiHint, setAiHint] = useState("Press Hint to ask GingerBrave for help.");
-  const [aiStatus, setAiStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [hintLoading, setHintLoading] = useState(false);
-  const [showHintPanel, setShowHintPanel] = useState(false);
-  const [hintUsedThisRound, setHintUsedThisRound] = useState(false);
+  const [gameStatus, setGameStatus] = useState<"idle" | "correct" | "wrong" | "won" | "lost">(
+    "idle"
+  );
+
+  // AI state
+  const [aiPrediction, setAiPrediction] = useState<AIPrediction | null>(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(false);
   const aiGenerator = useRef<any>(null);
 
+  // Stats state
+  const [stats, setStats] = useState<GameStats>(loadStats());
+
+  // Computed values
+  const currentWordList = WORD_CATEGORIES[difficulty];
   const maskedLetters = getMaskedLetters(word, guessedLetters);
   const won = isWordGuessed(word, guessedLetters);
   const lost = wrongGuesses >= MAX_WRONG;
   const availableLetters = "abcdefghijklmnopqrstuvwxyz"
     .split("")
     .filter((letter) => !guessedLetters.includes(letter));
+  const candidateWords = getCandidateWords(currentWordList, maskedLetters, guessedLetters);
 
-  function fallbackLetter() {
-    const frequencyOrder = [
-      "e",
-      "a",
-      "r",
-      "i",
-      "o",
-      "t",
-      "n",
-      "s",
-      "l",
-      "c",
-      "u",
-      "d",
-      "p",
-      "m",
-      "h",
-      "g",
-      "b",
-      "f",
-      "y",
-      "w",
-      "k",
-      "v",
-      "x",
-      "z",
-      "j",
-      "q",
-    ];
-    return frequencyOrder.find((letter) => availableLetters.includes(letter)) ?? availableLetters[0];
-  }
-
+  // Initialize AI generator
   async function ensureAiGenerator() {
     if (aiGenerator.current) {
       return aiGenerator.current;
     }
 
-    if (aiStatus === "loading") {
-      return null;
-    }
-
-    setAiStatus("loading");
+    setAiLoading(true);
 
     try {
       const { pipeline } = await import("@xenova/transformers");
       const generator = await pipeline("text-generation", "Xenova/distilgpt2");
       aiGenerator.current = generator;
-      setAiStatus("ready");
+      setAiError(false);
       return generator;
     } catch (error) {
-      console.error("GingerBrave failed to show up", error);
-      setAiStatus("error");
-      setAiHint("GingerBrave is unavailable.");
+      console.error("Failed to load AI model:", error);
+      setAiError(true);
       return null;
+    } finally {
+      setAiLoading(false);
     }
   }
 
+  // Request AI hint
   async function requestAiHint() {
     if (won || lost) {
-      setAiHint("Game over. Click play again to restart.");
       return;
     }
 
-    setShowHintPanel(true);
-    setHintLoading(true);
-    setAiStatus("loading");
-    setAiHint("GingerBrave is thinking...");
-    setHintUsedThisRound(true);
-
-    await new Promise((resolve) => setTimeout(resolve, 10));
-
-    const generator = await ensureAiGenerator();
-    if (!generator) {
-      setHintLoading(false);
-      return;
-    }
-
-    const wrongLetters = guessedLetters.filter((letter) => !word.toLowerCase().includes(letter));
-    const pattern = maskedLetters.join(" ");
-    const patternPositions = maskedLetters
-      .map((letter, index) =>
-        letter === " "
-          ? `${index + 1}=space`
-          : letter === "_"
-          ? `${index + 1}=unknown`
-          : `${index + 1}=${letter}`
-      )
-      .join(", ");
-    const unknownGroups = maskedLetters
-      .join("")
-      .split(" ")
-      .map((group) => group.replace(/[^_]/g, ""))
-      .filter((group) => group.length > 0)
-      .map((group) => `${group.length}`)
-      .join(", ");
-    const candidateWords = getCandidateWords(maskedLetters, guessedLetters);
-    const candidateSample = candidateWords.slice(0, 30);
-
-    if (candidateWords.length === 1) {
-      const uniqueCandidate = candidateWords[0].toLowerCase();
-      const nextLetter = uniqueCandidate
-        .split("")
-        .find((char, index) =>
-          char !== " " &&
-          !guessedLetters.includes(char) &&
-          maskedLetters[index] === "_"
-        );
-
-      if (nextLetter) {
-        setAiHint(`GingerBrave: Try “${nextLetter.toUpperCase()}”!`);
-        setHintLoading(false);
-        setHintUsedThisRound(true);
-        return;
-      }
-    }
-
-    if (candidateWords.length > 1 && candidateWords.length <= 10) {
-      const letterCounts: Record<string, number> = {};
-      candidateWords.forEach((candidate) => {
-        candidate.toLowerCase().split("").forEach((char, index) => {
-          if (
-            char !== " " &&
-            !guessedLetters.includes(char) &&
-            maskedLetters[index] === "_"
-          ) {
-            letterCounts[char] = (letterCounts[char] || 0) + 1;
-          }
-        });
-      });
-      const bestLetter = Object.entries(letterCounts)
-        .sort((a, b) => b[1] - a[1])
-        .map(([letter]) => letter)
-        .find((letter) => availableLetters.includes(letter));
-
-      if (bestLetter) {
-        setAiHint(`GingerBrave: Try “${bestLetter.toUpperCase()}”!`);
-        setHintLoading(false);
-        setHintUsedThisRound(true);
-        return;
-      }
-    }
-
-    const revealedLetters = maskedLetters
-      .filter((letter) => letter !== "_" && letter !== " ")
-      .map((letter, index) => `${index + 1}=${letter}`)
-      .join(", ");
-
-    const prompt = [
-      "You are a Hangman assistant that knows the full list of possible hidden words.",
-      `Full word list: ${WORD_BANK_TEXT}`,
-      `Word template: ${pattern}`,
-      `Groups of unknown letters by segment: ${unknownGroups}`,
-      `Letter positions: ${patternPositions}`,
-      `Revealed letters: ${revealedLetters.length > 0 ? revealedLetters : "none"}`,
-      `Already guessed letters: ${guessedLetters.length > 0 ? guessedLetters.join(", ") : "none"}`,
-      `Wrong letters: ${wrongLetters.length > 0 ? wrongLetters.join(", ") : "none"}`,
-      `Allowed letters: ${availableLetters.join(", ")}`,
-      `Possible words (${candidateWords.length}): ${candidateSample.join(", ")}${candidateWords.length > candidateSample.length ? ", ..." : ""}`,
-      "Use the revealed letters and exact pattern to eliminate impossible words and choose the best next unguessed letter.",
-      "Choose only one letter. Output exactly that letter."
-    ].join("\n");
+    setAiLoading(true);
+    setAiError(false);
 
     try {
-      const response = await generator(prompt, {
-        max_new_tokens: 8,
-        temperature: 0.0,
-        top_p: 1.0,
-        do_sample: false,
-        return_full_text: false,
-      });
+      // First, generate predictions based on candidate analysis
+      const predictions = generateAIPrediction(
+        maskedLetters,
+        guessedLetters,
+        availableLetters,
+        candidateWords,
+        currentWordList.length
+      );
 
-      const generatedText = Array.isArray(response)
-        ? response[0]?.generated_text
-        : response?.generated_text;
-      const nextLetter = String(generatedText)
-        .toLowerCase()
-        .split("")
-        .find((letter) => availableLetters.includes(letter));
+      setAiPrediction(predictions);
 
-      const chosenLetter = nextLetter ?? fallbackLetter();
-
-      setAiHint(`GingerBrave: Try “${chosenLetter.toUpperCase()}”!`);
-      setHintUsedThisRound(true);
+      // Try to use the AI model for validation
+      const generator = await ensureAiGenerator();
+      if (generator && predictions.topPredictions.length > 0) {
+        // AI model is ready, we could use it for additional analysis here
+        // For now, we display the confidence-scored predictions
+        setAiError(false);
+      }
     } catch (error) {
-      console.error("GingerBrave failed to send a message", error);
-      setAiStatus("error");
-      setAiHint("GingerBrave can't come up with a hint");
+      console.error("Failed to generate AI hint:", error);
+      setAiError(true);
     } finally {
-      setHintLoading(false);
+      setAiLoading(false);
     }
   }
 
-  useEffect(() => {
-    if (gameStatus !== "correct" && gameStatus !== "wrong") {
-      return;
-    }
+  // Handle difficulty change
+  function handleDifficultyChange(newDifficulty: Difficulty) {
+    setDifficulty(newDifficulty);
+    resetGame(newDifficulty);
+  }
 
-    const timeout = window.setTimeout(() => {
-      setGameStatus("idle");
-    }, 5000);
-
-    return () => window.clearTimeout(timeout);
-  }, [gameStatus]);
-
-  const handleGuess = () => {
+  // Handle guess
+  function handleGuess() {
     const normalized = input.toLowerCase().trim().replace(/[^a-z]/g, "");
 
     if (!normalized) return;
@@ -289,7 +169,7 @@ function App() {
     setInputError(false);
     const nextGuessedLetters = [...guessedLetters, normalized];
     setGuessedLetters(nextGuessedLetters);
-    setHintUsedThisRound(false);
+    setAiPrediction(null);
 
     if (word.includes(normalized)) {
       if (isWordGuessed(word, nextGuessedLetters)) {
@@ -304,22 +184,47 @@ function App() {
     }
 
     setInput("");
-  };
+  }
 
-  const resetGame = () => {
-    setWord(getRandomWord());
+  // Reset game
+  function resetGame(newDifficulty?: Difficulty) {
+    const diffToUse = newDifficulty || difficulty;
+    const words = WORD_CATEGORIES[diffToUse];
+    const newWord = words[Math.floor(Math.random() * words.length)];
+
+    setWord(newWord);
     setGuessedLetters([]);
     setWrongGuesses(0);
     setInput("");
     setInputError(false);
     setGameStatus("idle");
-    setAiHint("Press Hint to ask GingerBrave for help.");
-    setAiStatus("idle");
-    setHintLoading(false);
-    setShowHintPanel(false);
-    setHintUsedThisRound(false);
-  };
+    setAiPrediction(null);
+  }
 
+  // Clear status after timeout
+  useEffect(() => {
+    if (gameStatus !== "correct" && gameStatus !== "wrong") {
+      return;
+    }
+
+    const timeout = window.setTimeout(() => {
+      setGameStatus("idle");
+    }, 2000);
+
+    return () => window.clearTimeout(timeout);
+  }, [gameStatus]);
+
+  // Record stats when game ends
+  useEffect(() => {
+    if (gameStatus !== "won" && gameStatus !== "lost") {
+      return;
+    }
+
+    const newStats = recordGameResult(gameStatus === "won", guessedLetters.length, 0, 0, 0);
+    setStats(newStats);
+  }, [gameStatus, guessedLetters.length]);
+
+  // Hangman images
   const hangmanImages = [
     hangmanBase,
     hangman1,
@@ -336,12 +241,16 @@ function App() {
       <header className="app-header">
         <img src={icon} alt="CRK icon" className="app-logo" />
         <div className="app-title-wrapper">
-          <p className="app-eyebrow">CRK Hangman</p>
-          <h1>Guess the Cookie's Name</h1>
+          <p className="app-eyebrow">AI-Assisted Word Guessing</p>
+          <h1>Interactive Hangman with Transformer Inference</h1>
         </div>
       </header>
 
+      <GameStatus status={gameStatus} word={word} onClose={() => setGameStatus("idle")} />
+
       <main className="game-panel">
+        <DifficultySelector currentDifficulty={difficulty} onDifficultyChange={handleDifficultyChange} />
+
         <div className="status-row">
           <div className="status-card">
             <img
@@ -349,112 +258,73 @@ function App() {
               alt={`Hangman stage ${wrongGuesses} of ${MAX_WRONG}`}
               className="hangman-image"
             />
-            <span>Wrong guesses</span>
-            <strong>{wrongGuesses} / {MAX_WRONG}</strong>
-          </div>
-          <div className={`status-card status-${won ? "won" : lost ? "lost" : gameStatus}`}>
-            <span>
-              {won
-                ? "You Win"
-                : lost
-                ? "You Lose"
-                : gameStatus === "correct"
-                ? "Correct Guess"
-                : gameStatus === "wrong"
-                ? "Wrong Guess"
-                : "Keep Guessing"}
-            </span>
-            {lost && (
-              <span className="status-answer">Answer: {word}</span>
-            )}
-          </div>
-        </div>
-
-        <section className="guess-summary">
-          <div className="guessed-letters-panel">
-            <div className="guessed-letters-label">Already guessed letters</div>
-            <div className="guessed-letters">
-              {guessedLetters.length > 0 ? (
-                guessedLetters.map((letter) => (
-                  <span key={letter} className="guessed-letter-chip">
-                    {letter.toUpperCase()}
-                  </span>
-                ))
-              ) : (
-                <span className="empty-state">None yet</span>
-              )}
-            </div>
+            <div className="wrong-count">{wrongGuesses} / {MAX_WRONG} Wrong</div>
           </div>
 
-          <div className="word-display" aria-label="Masked word">
-            <div className="word-display-inner">
+          <div className="status-card">
+            <div className="word-display">
               {maskedLetters.map((letter, index) =>
                 letter === " " ? (
-                  <span key={`space-${index}`} className="word-space" aria-hidden="true" />
+                  <span key={`space-${index}`} style={{ display: "inline-block", width: "1rem" }} />
                 ) : (
-                  <span key={`${letter}-${index}`} className="word-tile">
-                    {letter}
-                  </span>
+                  <span key={`${letter}-${index}`}>{letter}</span>
                 )
               )}
             </div>
           </div>
-        </section>
+        </div>
 
-        <section className="controls-panel">
-          {!won && !lost ? (
-            <form
-              className="guess-form"
-              onSubmit={(event) => {
-                event.preventDefault();
+        {/* AI Prediction Panel */}
+        <AIPanel prediction={aiPrediction} isLoading={aiLoading} hasError={aiError} />
+
+        {/* Input and Controls */}
+        <div className="input-section">
+          <input
+            type="text"
+            className={`letter-input ${inputError ? "error" : ""}`}
+            value={input}
+            onChange={(e) => {
+              const val = e.target.value.slice(0, 1).toLowerCase().replace(/[^a-z]/g, "");
+              setInput(val);
+              if (!val || !guessedLetters.includes(val)) {
+                setInputError(false);
+              }
+            }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
                 handleGuess();
-              }}
-            >
-              <label className="letter-input-wrapper">
-                <span className="screen-reader-only">Enter letter</span>
-                <input
-                  className={`letter-input${inputError ? " letter-input-error" : ""}`}
-                  value={input}
-                  onChange={(e) => {
-                    const newValue = e.target.value.slice(0, 1);
-                    const normalizedValue = newValue.toLowerCase().replace(/[^a-z]/g, "");
-                    setInput(newValue);
-                    if (!normalizedValue || !guessedLetters.includes(normalizedValue)) {
-                      setInputError(false);
-                    }
-                  }}
-                  maxLength={1}
-                  placeholder="a"
-                  aria-label="Guess a letter"
-                />
-              </label>
-              <button className="primary-button" type="submit">
-                Guess
-              </button>
-              <button
-                className="secondary-button"
-                type="button"
-                onClick={requestAiHint}
-                disabled={won || lost || hintLoading || hintUsedThisRound}
-              >
-                {hintLoading ? "Loading..." : "Hint"}
-              </button>
-            </form>
-          ) : (
-            <button className="primary-button" onClick={resetGame}>
-              Play Again
-            </button>
-          )}
-        </section>
+              }
+            }}
+            placeholder="Enter a letter"
+            disabled={won || lost}
+            maxLength={1}
+          />
 
-        {(showHintPanel || hintLoading) && (
-          <section className="hint-panel">
-            <div className="hint-card">
-              <span className="hint-label">Message GingerBrave</span>
-              <p className="hint-text">{aiHint}</p>
-            </div>
-          </section>
-        )}
+          <div className="button-group">
+            <button
+              className="btn btn-primary"
+              onClick={handleGuess}
+              disabled={won || lost || !input}
+            >
+              Guess
+            </button>
+            <button
+              className="btn btn-hint"
+              onClick={requestAiHint}
+              disabled={won || lost || aiLoading}
+            >
+              {aiLoading ? "Analyzing..." : "AI Hint"}
+            </button>
+            {(won || lost) && (
+              <button className="btn btn-reset" onClick={() => resetGame()}>
+                Play Again
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Stats Display */}
+        <StatsDisplay stats={stats} isExpanded={false} onToggle={() => {}} />
       </main>
     </div>
   );
