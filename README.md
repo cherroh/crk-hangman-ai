@@ -1,10 +1,3 @@
-# crk-hangman 
-This is a collaboration project with the CookieRun YouTubers: Cherrow and KingdomCrumbs. Based on RoyalMike's Cookiedle (https://cookiedle.royalmike.com/), this is a simple hangman game with a CookieRun twist!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Try it here!
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-https://cherroh.github.io/crk-hangman/
-
 ---
 
 # AI-Assisted Interactive Hangman
@@ -14,15 +7,10 @@ https://cherroh.github.io/crk-hangman/
 [![Built with React](https://img.shields.io/badge/React-19.2-61dafb)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-6.0-3178c6)]()
 [![Transformers.js](https://img.shields.io/badge/Transformers.js-2.17-orange)]()
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)]()
 
 ## 🎯 Project Overview
 
 An interactive Hangman game platform that leverages client-side transformer inference to provide real-time AI-assisted letter predictions with confidence scoring and explainability. The application demonstrates advanced frontend engineering practices including responsive component architecture, state management optimization, and browser-based ML inference.
-
-**Reframing for Technical Excellence:**
-- Traditional framing: "Hangman with AI help"
-- Technical framing: **"Interactive AI-Powered Word Guessing Platform with Real-Time Transformer Inference and Confidence-Scored Predictions"**
 
 ## 🚀 Key Features
 
@@ -54,15 +42,11 @@ A  ██████████░░░░░░░░░ 74%
 - **Expert**: Challenging words (~80 words) - specialized vocabulary 8-25+ characters
 - **Programming**: Tech/ML terms (~200 words) - industry-specific terminology
 
-*Engineering benefit:* Demonstrates system design thinking and UX consideration for varied user skill levels.
-
 ### 3. **Explainability Panel** 📊
 Every prediction includes human-readable reasoning showing:
 - Frequency analysis: "Appears in 86% of remaining words"
 - Positional coverage: "Fits multiple positions (6 locations)"  
 - Search space impact: "Reduces search space by ~30%"
-
-*Engineering benefit:* Shows sophisticated understanding of interpretable AI and user transparency.
 
 ### 4. **Game Analytics & Stats** 📈
 Real-time tracking of:
@@ -70,8 +54,6 @@ Real-time tracking of:
 - Average guesses per game
 - Total AI hints used
 - Prediction accuracy (stored in localStorage)
-
-*Engineering benefit:* Demonstrates data-driven decision making and state persistence.
 
 ### 5. **Modern Glassmorphism UI** ✨
 - Dark theme with cyan/purple accent colors (AI aesthetic)
@@ -208,51 +190,5 @@ The app will be available at `http://localhost:5173/crk-hangman/`
 npm run build
 npm run preview
 ```
-
-## 📈 Internship Resume Impact
-
-### Bullet Point (Strong Version)
-> Engineered an AI-assisted word-guessing web application using React, TypeScript, and Transformers.js, implementing on-device transformer inference with confidence-scored predictions, adaptive difficulty systems, and responsive UI. Designed information-theoretic letter prediction algorithm reducing average candidate pool by 71%, demonstrating ML fundamentals and performance optimization.
-
-### Key Technical Achievements
-- ✅ **ML Integration**: On-device inference pipeline with confidence scoring
-- ✅ **State Management**: React hooks with localStorage persistence  
-- ✅ **Performance**: Sub-50ms prediction generation, lazy-loaded ML models
-- ✅ **UX/UI**: Accessible, responsive glassmorphism design
-- ✅ **Code Quality**: Full TypeScript, component-based architecture
-- ✅ **Analytics**: Data-driven approach with persistent statistics
-
-## 🎨 Future Enhancements
-
-### Phase 2: Performance Optimization
-- [ ] Implement Web Workers for inference off main thread
-- [ ] Add model quantization for faster inference
-- [ ] Implement prediction caching
-- [ ] Code-split for faster initial load
-
-### Phase 3: Advanced Features
-- [ ] Multiplayer mode (real-time with WebSocket)
-- [ ] AI vs Human competitive mode
-- [ ] Game replay system with move analysis
-- [ ] Leaderboard with time-based scoring
-
-### Phase 4: Platform Expansion
-- [ ] Wordle AI solver
-- [ ] Crossword hint generator
-- [ ] Scrabble move optimizer
-- [ ] API for third-party integrations
-
-## 📝 Interview Talking Points
-
-1. **Information Theory**: Explain how confidence scoring uses entropy reduction
-2. **Algorithm Design**: Walk through the candidate filtering logic
-3. **React Patterns**: Discuss component composition and hooks usage
-4. **TypeScript**: Show how strict typing catches bugs
-5. **Performance**: Discuss lazy loading and caching strategies
-6. **UX Design**: Explain accessibility and responsive design choices
-
-## 📄 License
-
-MIT License - Feel free to use this project for learning and internship portfolios.
 
 ---
