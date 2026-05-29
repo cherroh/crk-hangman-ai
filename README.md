@@ -12,6 +12,8 @@ This project is an interactive Hangman game that uses client-side AI to suggest 
 
 The goal of the project was to experiment with browser-based ML inference while building a polished frontend application with responsive design, reusable components, and persistent game stats.
 
+View the previous verison of the project here: https://cherroh.github.io/crk-hangman/
+
 ## 🚀 Features
 
 ### 1. AI Letter Predictions 🤖
