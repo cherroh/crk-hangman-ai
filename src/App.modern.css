@@ -128,7 +128,7 @@ html, body, #root {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   margin: 0;
-  line-height: 1;
+  line-height: 1.3;
 }
 
 .app-eyebrow {
@@ -410,6 +410,7 @@ html, body, #root {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   cursor: pointer;
+  text-align: center;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border-radius: 8px;
   position: relative;
