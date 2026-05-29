@@ -4,6 +4,7 @@
 let pipeline: any = null;
 
 interface InferenceRequest {
+  type: "init" | "infer";
   id: string;
   prompt: string;
   options: {
@@ -61,6 +62,7 @@ async function performInference(request: InferenceRequest) {
     postMessage({
       type: "inference",
       id: request.id,
+      result: "",
       error: String(error),
     } as InferenceResponse);
   }

@@ -96,15 +96,16 @@ html, body, #root {
   backdrop-filter: blur(10px);
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 1.5rem;
 }
 
 .app-logo {
-  width: 48px;
-  height: 48px;
-  border-radius: 8px;
+  width: 80px;
+  height: 80px;
+  border-radius: 12px;
   background: var(--surface);
-  padding: 4px;
+  padding: 6px;
   border: 2px solid var(--accent-primary);
   box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
   animation: pulse-glow 3s ease-in-out infinite;
@@ -113,6 +114,10 @@ html, body, #root {
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 20px rgba(0, 212, 255, 0.3); }
   50% { box-shadow: 0 0 30px rgba(0, 212, 255, 0.6); }
+}
+
+.app-title-wrapper {
+  text-align: center;
 }
 
 .app-title-wrapper h1 {
@@ -133,6 +138,7 @@ html, body, #root {
   letter-spacing: 0.05em;
   margin-bottom: 0.25rem;
   text-transform: uppercase;
+  text-align: center;
 }
 
 /* Main Game Panel */
